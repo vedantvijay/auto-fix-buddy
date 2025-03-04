@@ -1,17 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "@/components/ui/mode-toggle";
-import { Menu, X } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile";
+import { ModeToggle } from "./ui/mode-toggle";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { configService } from '@/services/config';
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
