@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import IssueCard from './IssueCard';
 import { processorService, ProcessingResult } from '../services/processor';
 import { configService } from '../services/config';
 import { toast } from 'sonner';
+import { useApp } from '@/contexts/AppContext';
 
 interface DashboardProps {
   className?: string;
@@ -16,19 +16,13 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ className }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [issues, setIssues] = useState<ProcessingResult[]>([]);
+  const { issues, refreshIssues, processIssue, refreshing, isConfigured } = useApp();
   const [activeTab, setActiveTab] = useState('all');
-  const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
-    // Check if services are configured
-    setIsConfigured(configService.isConfigured());
-    
-    // Load existing results
-    const results = processorService.getResults();
-    setIssues(results);
-  }, []);
+    console.log('Dashboard mounted, isConfigured:', isConfigured);
+    console.log('Current issues:', issues);
+  }, [isConfigured, issues]);
 
   const handleRefresh = async () => {
     if (!isConfigured) {
@@ -36,17 +30,12 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
       return;
     }
     
-    setRefreshing(true);
-    
     try {
-      const results = await processorService.refreshIssues();
-      setIssues(results);
+      await refreshIssues();
       toast.success("Issues refreshed successfully");
     } catch (error) {
       console.error('Error refreshing issues:', error);
       toast.error(`Failed to refresh issues: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setRefreshing(false);
     }
   };
 
@@ -57,44 +46,8 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     }
     
     try {
-      // Find the issue in the list
-      const issueIndex = issues.findIndex(issue => issue.issue.id === issueId);
-      
-      if (issueIndex === -1) {
-        toast.error("Issue not found");
-        return;
-      }
-      
-      // Update the issue status to processing
-      const updatedIssues = [...issues];
-      updatedIssues[issueIndex] = {
-        ...updatedIssues[issueIndex],
-        status: 'processing'
-      };
-      
-      setIssues(updatedIssues);
-      
-      // Process the issue
-      const result = await processorService.processIssue(issueId);
-      
-      // Update the issues list
-      setIssues(prev => {
-        const newIssues = [...prev];
-        const index = newIssues.findIndex(issue => issue.issue.id === issueId);
-        
-        if (index !== -1) {
-          newIssues[index] = result;
-        }
-        
-        return newIssues;
-      });
-      
-      // Show success or error message
-      if (result.status === 'completed') {
-        toast.success(`Successfully processed issue #${result.issue.number}`);
-      } else if (result.status === 'failed') {
-        toast.error(`Failed to process issue #${result.issue.number}: ${result.error}`);
-      }
+      await processIssue(issueId);
+      toast.success(`Successfully started processing issue #${issueId}`);
     } catch (error) {
       console.error('Error processing issue:', error);
       toast.error(`Failed to process issue: ${error instanceof Error ? error.message : String(error)}`);
@@ -114,6 +67,8 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
     
     return true;
   });
+
+  console.log('Filtered issues:', filteredIssues);
 
   return (
     <div className={cn("", className)}>

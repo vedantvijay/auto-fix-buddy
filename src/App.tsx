@@ -5,6 +5,8 @@ import { ThemeProvider } from './components/theme-provider';
 import { AppProvider } from './contexts/AppContext';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
+import Settings from './pages/Settings';
+import DashboardPage from './pages/DashboardPage';
 import './App.css';
 
 function App() {
@@ -14,6 +16,8 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

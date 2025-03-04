@@ -1,150 +1,206 @@
 
-import { GitHubIssue, GitHubRepo, GitHubBranch, GitHubPullRequest } from '../types/github';
+import { Octokit } from '@octokit/rest';
+import { GitHubIssue, GitHubPullRequest, GitHubRepo, GitHubBranch } from '../types/github';
 
 class GitHubService {
-  private token: string = '';
+  private octokit: Octokit | null = null;
   private owner: string = '';
   private repo: string = '';
-  private baseUrl = 'https://api.github.com';
-
-  constructor() {}
 
   configure(token: string, owner: string, repo: string) {
-    this.token = token;
+    this.octokit = new Octokit({ auth: token });
     this.owner = owner;
     this.repo = repo;
   }
 
-  private async request<T>(path: string, method: string = 'GET', body?: any): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    
-    const headers: HeadersInit = {
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-    };
-    
-    if (this.token) {
-      headers['Authorization'] = `token ${this.token}`;
-    }
-    
-    const options: RequestInit = {
-      method,
-      headers,
-    };
-    
-    if (body) {
-      options.body = JSON.stringify(body);
-    }
-    
-    try {
-      const response = await fetch(url, options);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`GitHub API Error: ${response.status} - ${JSON.stringify(errorData)}`);
-      }
-      
-      return await response.json() as T;
-    } catch (error) {
-      console.error('GitHub API Request Error:', error);
-      throw error;
+  private checkConfiguration() {
+    if (!this.octokit) {
+      throw new Error('GitHub API not configured. Please set your token first.');
     }
   }
 
   async getOpenIssues(labels?: string[]): Promise<GitHubIssue[]> {
-    let path = `/repos/${this.owner}/${this.repo}/issues?state=open`;
-    
-    if (labels && labels.length > 0) {
-      path += `&labels=${labels.join(',')}`;
-    }
-    
-    return this.request<GitHubIssue[]>(path);
-  }
-
-  async getIssue(issueNumber: number): Promise<GitHubIssue> {
-    const path = `/repos/${this.owner}/${this.repo}/issues/${issueNumber}`;
-    return this.request<GitHubIssue>(path);
-  }
-
-  async getRepoInfo(): Promise<GitHubRepo> {
-    const path = `/repos/${this.owner}/${this.repo}`;
-    return this.request<GitHubRepo>(path);
-  }
-
-  async createBranch(branchName: string, fromBranch: string = 'main'): Promise<GitHubBranch> {
-    // First, get the SHA of the latest commit on the base branch
-    const path = `/repos/${this.owner}/${this.repo}/git/refs/heads/${fromBranch}`;
-    const ref = await this.request<{object: {sha: string}}>(path);
-    
-    // Then create a new branch from that SHA
-    const createPath = `/repos/${this.owner}/${this.repo}/git/refs`;
-    const body = {
-      ref: `refs/heads/${branchName}`,
-      sha: ref.object.sha
-    };
-    
-    return this.request<GitHubBranch>(createPath, 'POST', body);
-  }
-
-  async createFile(path: string, content: string, branch: string, message: string): Promise<void> {
-    const apiPath = `/repos/${this.owner}/${this.repo}/contents/${path}`;
-    const body = {
-      message,
-      content: btoa(content), // Base64 encode the content
-      branch
-    };
-    
-    await this.request(apiPath, 'PUT', body);
-  }
-
-  async updateFile(path: string, content: string, branch: string, message: string): Promise<void> {
-    // First, get the current file to get its SHA
-    const apiPath = `/repos/${this.owner}/${this.repo}/contents/${path}?ref=${branch}`;
+    this.checkConfiguration();
     
     try {
-      const file = await this.request<{sha: string}>(apiPath);
-      
-      // Then update the file with the new content
-      const body = {
-        message,
-        content: btoa(content), // Base64 encode the content
-        sha: file.sha,
-        branch
+      const params: any = {
+        owner: this.owner,
+        repo: this.repo,
+        state: 'open',
+        per_page: 100,
       };
       
-      await this.request(apiPath, 'PUT', body);
+      if (labels && labels.length > 0) {
+        params.labels = labels.join(',');
+      }
+      
+      const response = await this.octokit!.issues.listForRepo(params);
+      
+      // Filter out pull requests (they are also returned by the issues endpoint)
+      const issues = response.data.filter(issue => !issue.pull_request);
+      
+      return issues.map(issue => ({
+        id: issue.id,
+        number: issue.number,
+        title: issue.title,
+        body: issue.body || '',
+        state: issue.state,
+        html_url: issue.html_url,
+        created_at: issue.created_at,
+        updated_at: issue.updated_at,
+        labels: issue.labels.map((label: any) => ({ name: typeof label === 'string' ? label : label.name })),
+        repository: {
+          name: this.repo,
+          owner: {
+            login: this.owner
+          }
+        }
+      }));
     } catch (error) {
-      // If the file doesn't exist, create it instead
-      await this.createFile(path, content, branch, message);
+      console.error('Error fetching GitHub issues:', error);
+      throw error;
     }
   }
 
-  async createPullRequest(title: string, body: string, head: string, base: string = 'main'): Promise<GitHubPullRequest> {
-    const path = `/repos/${this.owner}/${this.repo}/pulls`;
-    const prBody = {
-      title,
-      body,
-      head,
-      base
-    };
-    
-    return this.request<GitHubPullRequest>(path, 'POST', prBody);
-  }
-
-  async getFileContent(path: string, branch: string = 'main'): Promise<string> {
-    const apiPath = `/repos/${this.owner}/${this.repo}/contents/${path}?ref=${branch}`;
+  async createBranch(branchName: string): Promise<void> {
+    this.checkConfiguration();
     
     try {
-      const response = await this.request<{content: string, encoding: string}>(apiPath);
+      // Get the default branch to use as base
+      const repoData = await this.octokit!.repos.get({
+        owner: this.owner,
+        repo: this.repo
+      });
       
-      if (response.encoding === 'base64') {
-        return atob(response.content);
+      const defaultBranch = repoData.data.default_branch;
+      
+      // Get the SHA of the latest commit on the default branch
+      const refData = await this.octokit!.git.getRef({
+        owner: this.owner,
+        repo: this.repo,
+        ref: `heads/${defaultBranch}`
+      });
+      
+      const sha = refData.data.object.sha;
+      
+      // Create the new branch
+      await this.octokit!.git.createRef({
+        owner: this.owner,
+        repo: this.repo,
+        ref: `refs/heads/${branchName}`,
+        sha
+      });
+    } catch (error) {
+      console.error('Error creating branch:', error);
+      throw error;
+    }
+  }
+
+  async updateFile(path: string, content: string, branch: string, commitMessage: string): Promise<void> {
+    this.checkConfiguration();
+    
+    try {
+      // First try to get the file to see if it exists
+      let existingFile;
+      try {
+        existingFile = await this.octokit!.repos.getContent({
+          owner: this.owner,
+          repo: this.repo,
+          path,
+          ref: branch
+        });
+      } catch (error: any) {
+        if (error.status !== 404) {
+          throw error;
+        }
+        // File doesn't exist, that's okay
       }
       
-      return response.content;
+      const contentEncoded = Buffer.from(content).toString('base64');
+      
+      if (existingFile && 'data' in existingFile && existingFile.data.sha) {
+        // Update existing file
+        await this.octokit!.repos.createOrUpdateFileContents({
+          owner: this.owner,
+          repo: this.repo,
+          path,
+          message: commitMessage,
+          content: contentEncoded,
+          branch,
+          sha: (existingFile.data as any).sha
+        });
+      } else {
+        // Create new file
+        await this.octokit!.repos.createOrUpdateFileContents({
+          owner: this.owner,
+          repo: this.repo,
+          path,
+          message: commitMessage,
+          content: contentEncoded,
+          branch
+        });
+      }
     } catch (error) {
-      console.error(`Error fetching file ${path}:`, error);
-      return '';
+      console.error('Error updating file:', error);
+      throw error;
+    }
+  }
+
+  async createPullRequest(title: string, body: string, branch: string): Promise<GitHubPullRequest> {
+    this.checkConfiguration();
+    
+    try {
+      // Get the default branch to use as base
+      const repoData = await this.octokit!.repos.get({
+        owner: this.owner,
+        repo: this.repo
+      });
+      
+      const defaultBranch = repoData.data.default_branch;
+      
+      // Create the pull request
+      const response = await this.octokit!.pulls.create({
+        owner: this.owner,
+        repo: this.repo,
+        title,
+        body,
+        head: branch,
+        base: defaultBranch
+      });
+      
+      return {
+        number: response.data.number,
+        html_url: response.data.html_url,
+        state: response.data.state,
+        title: response.data.title,
+        body: response.data.body || '',
+        created_at: response.data.created_at
+      };
+    } catch (error) {
+      console.error('Error creating pull request:', error);
+      throw error;
+    }
+  }
+
+  async getRepository(): Promise<GitHubRepo> {
+    this.checkConfiguration();
+    
+    try {
+      const response = await this.octokit!.repos.get({
+        owner: this.owner,
+        repo: this.repo
+      });
+      
+      return {
+        name: response.data.name,
+        owner: {
+          login: response.data.owner.login
+        },
+        html_url: response.data.html_url
+      };
+    } catch (error) {
+      console.error('Error fetching repository:', error);
+      throw error;
     }
   }
 }

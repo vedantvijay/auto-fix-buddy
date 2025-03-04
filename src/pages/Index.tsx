@@ -1,5 +1,6 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { usePreventAnimationOnLoad } from '@/lib/animations';
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Code, Cog, Database, GitPullRequest, LineChart, Lock, Workflow } from "lucide-react";
@@ -8,8 +9,6 @@ import Footer from '@/components/Footer';
 import AnimatedBackground from '@/components/AnimatedBackground';
 import FeatureCard from '@/components/features/FeatureCard';
 import ProcessSteps from '@/components/ProcessSteps';
-import ConfigForm from '@/components/ConfigForm';
-import Dashboard from '@/components/Dashboard';
 
 const Index = () => {
   // Prevent animations on initial load
@@ -39,12 +38,16 @@ const Index = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fadeIn animation-delay-300">
-              <Button size="lg" className="gap-2">
-                <span>Get Started</span>
-                <ArrowRight className="h-4 w-4" />
+              <Button size="lg" className="gap-2" asChild>
+                <Link to="/settings">
+                  <span>Get Started</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
-              <Button variant="outline" size="lg">
-                Learn More
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/dashboard">
+                  Learn More
+                </Link>
               </Button>
             </div>
           </div>
@@ -104,7 +107,7 @@ const Index = () => {
             />
             <FeatureCard
               title="AI-Powered Solutions"
-              description="Leverage OpenAI's powerful models to generate optimal code fixes for common problems."
+              description="Leverage Gemini's powerful models to generate optimal code fixes for common problems."
               icon={<Code className="h-6 w-6" />}
               className="animate-fadeIn animation-delay-100"
             />
@@ -122,13 +125,13 @@ const Index = () => {
             />
             <FeatureCard
               title="Scalable Architecture"
-              description="BullMQ queue ensures efficient processing of multiple issues without overwhelming systems."
+              description="Queue system ensures efficient processing of multiple issues without overwhelming systems."
               icon={<LineChart className="h-6 w-6" />}
               className="animate-fadeIn animation-delay-400"
             />
             <FeatureCard
               title="Historical Analytics"
-              description="Track and analyze past fixes with MongoDB integration for continuous improvement."
+              description="Track and analyze past fixes with integrated storage for continuous improvement."
               icon={<Database className="h-6 w-6" />}
               className="animate-fadeIn animation-delay-500"
             />
@@ -150,34 +153,6 @@ const Index = () => {
         </div>
       </section>
       
-      {/* Configuration Section */}
-      <section id="configuration" className="py-16 md:py-24 bg-accent/50">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Configuration</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Set up your repository and API connections in minutes
-            </p>
-          </div>
-          
-          <ConfigForm />
-        </div>
-      </section>
-      
-      {/* Dashboard Section */}
-      <section id="dashboard" className="py-16 md:py-24">
-        <div className="container">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Dashboard</h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Monitor your issue resolution progress in real-time
-            </p>
-          </div>
-          
-          <Dashboard />
-        </div>
-      </section>
-      
       {/* CTA Section */}
       <section className="py-16 md:py-24 bg-primary/5">
         <div className="container">
@@ -188,12 +163,16 @@ const Index = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="gap-2">
-                <span>Get Started</span>
-                <ArrowRight className="h-4 w-4" />
+              <Button size="lg" className="gap-2" asChild>
+                <Link to="/settings">
+                  <span>Get Started</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
-              <Button variant="outline" size="lg">
-                Learn More
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/dashboard">
+                  Learn More
+                </Link>
               </Button>
             </div>
           </div>

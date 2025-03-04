@@ -1,128 +1,122 @@
+
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { Github, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/mode-toggle";
+import { Menu, X } from "lucide-react";
+import { useMobile } from "@/hooks/use-mobile";
+import { configService } from '@/services/config';
 
-interface HeaderProps {
-  className?: string;
-}
-
-const Header: React.FC<HeaderProps> = ({ className }) => {
-  const [scrolled, setScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+const Header = () => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isMobile = useMobile();
+  const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      const isScrolled = window.scrollY > 10;
-      if (isScrolled !== scrolled) {
-        setScrolled(isScrolled);
-      }
+      setIsScrolled(window.scrollY > 10);
     };
 
+    setIsConfigured(configService.isConfigured());
+    
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [scrolled]);
-
+  }, []);
+  
   return (
     <header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        scrolled ? "py-2 bg-background/80 backdrop-blur-md border-b" : "py-4",
-        className
+        isScrolled ? "bg-background/80 backdrop-blur shadow-sm" : "bg-transparent"
       )}
     >
-      <div className="container flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="relative mr-2">
-            <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path 
-                  d="M7 8L3 12L7 16M17 8L21 12L17 16M14 4L10 20" 
-                  stroke="white" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
+      <div className="container flex h-16 items-center justify-between gap-4">
+        <Link to="/" className="flex items-center gap-2 font-semibold">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L17 7V17L12 22L7 17V7L12 2Z" className="fill-primary" />
+            <path d="M12 6L15 9V15L12 18L9 15V9L12 6Z" className="fill-background" />
+          </svg>
+          <span>AutoPR</span>
+        </Link>
+        
+        <div className="hidden md:flex items-center gap-6">
+          <nav className="flex items-center gap-5">
+            <Link to="/" className="text-foreground/70 hover:text-foreground transition-colors">
+              Home
+            </Link>
+            <Link to="/dashboard" className="text-foreground/70 hover:text-foreground transition-colors">
+              Dashboard
+            </Link>
+            <Link to="/settings" className="text-foreground/70 hover:text-foreground transition-colors">
+              Settings
+            </Link>
+          </nav>
+          
+          <div className="flex items-center gap-2">
+            <ModeToggle />
+            <Button asChild>
+              <Link to={isConfigured ? "/dashboard" : "/settings"}>
+                {isConfigured ? "Dashboard" : "Configure"}
+              </Link>
+            </Button>
           </div>
-          <h1 className="text-xl font-semibold">AutoPR</h1>
         </div>
-
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
-            Features
-          </a>
-          <a href="#how-it-works" className="text-sm font-medium hover:text-primary transition-colors">
-            How It Works
-          </a>
-          <a href="#configuration" className="text-sm font-medium hover:text-primary transition-colors">
-            Configuration
-          </a>
-          <a href="#dashboard" className="text-sm font-medium hover:text-primary transition-colors">
-            Dashboard
-          </a>
-          <Button size="sm" variant="outline" className="gap-2">
-            <Github size={16} />
-            <span>GitHub</span>
+        
+        {/* Mobile menu */}
+        <div className="flex items-center gap-2 md:hidden">
+          <ModeToggle />
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
-        </nav>
-
-        {/* Mobile Menu Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-label="Toggle menu"
-        >
-          {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-        </Button>
+        </div>
       </div>
-
-      {/* Mobile Menu */}
-      <div
-        className={cn(
-          "fixed inset-x-0 top-[57px] p-4 border-b backdrop-blur-md bg-background/80 md:hidden transition-all duration-300 ease-in-out",
-          mobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4 pointer-events-none"
-        )}
-      >
-        <nav className="flex flex-col space-y-4">
-          <a 
-            href="#features" 
-            className="text-sm font-medium p-2 hover:bg-accent rounded-md" 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Features
-          </a>
-          <a 
-            href="#how-it-works" 
-            className="text-sm font-medium p-2 hover:bg-accent rounded-md" 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            How It Works
-          </a>
-          <a 
-            href="#configuration" 
-            className="text-sm font-medium p-2 hover:bg-accent rounded-md" 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Configuration
-          </a>
-          <a 
-            href="#dashboard" 
-            className="text-sm font-medium p-2 hover:bg-accent rounded-md" 
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Dashboard
-          </a>
-          <Button size="sm" variant="outline" className="gap-2 justify-center">
-            <Github size={16} />
-            <span>GitHub</span>
-          </Button>
-        </nav>
-      </div>
+      
+      {/* Mobile menu dropdown */}
+      {isMobile && isMenuOpen && (
+        <div className="absolute top-16 left-0 right-0 bg-background border-b z-50 animate-in fade-in slide-in-from-top-5">
+          <div className="container py-4">
+            <nav className="flex flex-col gap-4">
+              <Link 
+                to="/" 
+                className="px-4 py-2 hover:bg-accent rounded-md" 
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link 
+                to="/dashboard" 
+                className="px-4 py-2 hover:bg-accent rounded-md" 
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                to="/settings" 
+                className="px-4 py-2 hover:bg-accent rounded-md" 
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Settings
+              </Link>
+              <Button 
+                className="mt-2" 
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  window.location.href = isConfigured ? "/dashboard" : "/settings";
+                }}
+              >
+                {isConfigured ? "Dashboard" : "Configure"}
+              </Button>
+            </nav>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

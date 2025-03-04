@@ -3,6 +3,7 @@ import React from 'react';
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle, Clock, GitPullRequest } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
 
 interface IssueCardProps {
   title: string;
@@ -44,6 +45,9 @@ const IssueCard: React.FC<IssueCardProps> = ({
     },
   };
 
+  // Format the date if it's a valid ISO string
+  const formattedDate = date ? format(new Date(date), 'MMM d, yyyy') : 'Unknown date';
+
   return (
     <div className={cn(
       "group flex flex-col p-5 rounded-xl border bg-card transition-all duration-300 hover:shadow-soft",
@@ -69,7 +73,7 @@ const IssueCard: React.FC<IssueCardProps> = ({
       </div>
       
       <div className="mt-auto pt-3 flex items-center justify-between text-xs text-muted-foreground">
-        <span>{date}</span>
+        <span>{formattedDate}</span>
         {status === 'completed' && (
           <div className="flex items-center gap-1 text-primary hover:underline cursor-pointer">
             <GitPullRequest className="h-3.5 w-3.5" />
