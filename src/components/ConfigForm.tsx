@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,12 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Check, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Switch } from "@/components/ui/switch";
+import { configService } from '../services/config';
+import { toast } from 'sonner';
 
 interface ConfigFormProps {
   className?: string;
+  onConfigSaved?: () => void;
 }
 
-const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
+const ConfigForm: React.FC<ConfigFormProps> = ({ className, onConfigSaved }) => {
   const [formState, setFormState] = useState({
     repository: '',
     owner: '',
@@ -20,9 +24,24 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
     apiKey: '',
     labels: '',
     skipTests: false,
+    branchPrefix: 'autopr-fix-',
   });
 
   const [formSubmitted, setFormSubmitted] = useState(false);
+
+  // Load config on mount
+  useEffect(() => {
+    const config = configService.getConfig();
+    setFormState({
+      repository: config.github.repository,
+      owner: config.github.owner,
+      token: config.github.token,
+      apiKey: config.gemini.apiKey,
+      labels: config.options.labels.join(', '),
+      skipTests: config.options.skipTests,
+      branchPrefix: config.options.branchPrefix,
+    });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
@@ -32,12 +51,43 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
     }));
   };
 
+  const handleSwitchChange = (checked: boolean, name: string) => {
+    setFormState(prev => ({
+      ...prev,
+      [name]: checked
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simulate form submission
+    
+    // Save config
+    configService.updateConfig({
+      github: {
+        repository: formState.repository,
+        owner: formState.owner,
+        token: formState.token,
+      },
+      gemini: {
+        apiKey: formState.apiKey,
+      },
+      options: {
+        labels: formState.labels.split(',').map(label => label.trim()).filter(Boolean),
+        skipTests: formState.skipTests,
+        branchPrefix: formState.branchPrefix,
+      }
+    });
+    
+    // Show success
+    setFormSubmitted(true);
+    toast.success("Configuration saved successfully");
+    
     setTimeout(() => {
-      setFormSubmitted(true);
-    }, 800);
+      setFormSubmitted(false);
+      if (onConfigSaved) {
+        onConfigSaved();
+      }
+    }, 2000);
   };
 
   return (
@@ -46,7 +96,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
         <Tabs defaultValue="github" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="github">GitHub</TabsTrigger>
-            <TabsTrigger value="openai">OpenAI</TabsTrigger>
+            <TabsTrigger value="gemini">Gemini</TabsTrigger>
             <TabsTrigger value="options">Options</TabsTrigger>
           </TabsList>
           
@@ -126,17 +176,17 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
               </div>
             </TabsContent>
             
-            <TabsContent value="openai" className="space-y-4">
+            <TabsContent value="gemini" className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="apiKey">OpenAI API Key</Label>
+                  <Label htmlFor="apiKey">Gemini API Key</Label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Info className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p className="w-80">Your OpenAI API key used for generating code solutions.</p>
+                        <p className="w-80">Your Google Gemini API key used for generating code solutions.</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -145,7 +195,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
                   id="apiKey"
                   name="apiKey"
                   type="password"
-                  placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                  placeholder="AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
                   value={formState.apiKey}
                   onChange={handleChange}
                   required
@@ -175,6 +225,38 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ className }) => {
                   value={formState.labels}
                   onChange={handleChange}
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="branchPrefix">Branch Prefix</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="w-80">Prefix to use for branches created by AutoPR.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Input
+                  id="branchPrefix"
+                  name="branchPrefix"
+                  placeholder="e.g., autopr-fix-"
+                  value={formState.branchPrefix}
+                  onChange={handleChange}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <Switch
+                  id="skipTests"
+                  checked={formState.skipTests}
+                  onCheckedChange={(checked) => handleSwitchChange(checked, "skipTests")}
+                />
+                <Label htmlFor="skipTests">Skip tests for generated code</Label>
               </div>
             </TabsContent>
             
