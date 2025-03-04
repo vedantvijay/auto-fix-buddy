@@ -6,10 +6,10 @@ class ConfigService {
     github: {
       owner: '',
       repository: '',
-      token: ''
+      token: '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'
     },
     gemini: {
-      apiKey: ''
+      apiKey: 'AIzaSyBCA86Otny4qlzJ60FchcCjAg2AOLSn12M'
     },
     options: {
       labels: [],
