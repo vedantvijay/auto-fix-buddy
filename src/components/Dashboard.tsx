@@ -1,4 +1,3 @@
-<lov-codelov-code>
 import React, { useState } from 'react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -165,4 +164,3 @@ const Dashboard: React.FC<DashboardProps> = ({ className }) => {
 };
 
 export default Dashboard;
-</lov-code>
