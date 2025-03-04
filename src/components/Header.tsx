@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { cn } from "@/lib/utils";
-import { GitHub, Menu, X } from "lucide-react";
+import { Github, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
@@ -65,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             Dashboard
           </a>
           <Button size="sm" variant="outline" className="gap-2">
-            <GitHub size={16} />
+            <Github size={16} />
             <span>GitHub</span>
           </Button>
         </nav>
@@ -119,7 +118,7 @@ const Header: React.FC<HeaderProps> = ({ className }) => {
             Dashboard
           </a>
           <Button size="sm" variant="outline" className="gap-2 justify-center">
-            <GitHub size={16} />
+            <Github size={16} />
             <span>GitHub</span>
           </Button>
         </nav>
