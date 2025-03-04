@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { configService } from '../services/config';
 import { processorService, ProcessingResult } from '../services/processor';
+import { toast } from 'sonner';
 
 interface AppContextType {
   isConfigured: boolean;
@@ -27,12 +28,20 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
-    setIsConfigured(configService.isConfigured());
-    setIssues(processorService.getResults());
+    // Check if configured on mount
+    const configured = configService.isConfigured();
+    setIsConfigured(configured);
+    
+    // Load initial issues from processor service
+    const savedIssues = processorService.getResults();
+    setIssues(savedIssues);
+    
+    console.log('AppContext initialized - isConfigured:', configured, 'issues:', savedIssues.length);
   }, []);
 
   const refreshIssues = async () => {
     if (!isConfigured) {
+      toast.error("Configuration not set");
       throw new Error("Configuration not set");
     }
     
@@ -52,6 +61,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
 
   const processIssue = async (issueId: number) => {
     if (!isConfigured) {
+      toast.error("Configuration not set");
       throw new Error("Configuration not set");
     }
     

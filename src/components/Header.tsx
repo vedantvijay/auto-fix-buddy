@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "./ui/mode-toggle";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import { Menu, X } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { configService } from '@/services/config';
@@ -19,9 +19,13 @@ const Header = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
+    // Check if config is valid
     setIsConfigured(configService.isConfigured());
     
+    // Add scroll event listener
     window.addEventListener('scroll', handleScroll);
+    
+    // Cleanup
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
